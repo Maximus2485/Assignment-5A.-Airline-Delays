@@ -1,0 +1,193 @@
+---
+title: "Arrival delays. Assignment 5"
+author: "Maxim Arisov"
+date: "2026-10-04"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+Approach
+
+First, I will create a .CSV file that includes all the information mentioned in
+the chart, with arrival delays provided in the instructions for Assignment 5A.
+Second, I will read the information from my .CSV file into R. Then, I will use 
+the tidyr and dplyr packages, which are main components of the tidyverse. I will
+use dplyr to filter, select, mutate, summarize, and arrange my data, while tidyr
+will be used to change the layout of my dataset by following commands: 
+pivot_wider, pivot_longer, etc. In other words, the two packages named above 
+will be used to tidy and transform my data.
+Moreover, I will perform an analysis to compare the arrival delays for the 
+two airlines.
+Lastly, I will provide R code in the R Markdown file and will publish it to 
+rpubs.com. Furthermore, the conclusion and narrative description of data 
+manipulation and analysis will also be provided.
+I will upload the Rmd file to my GitHub repository, and the URLs for 
+the .Rmd file and rpubs.com web page will be provided.
+
+GitHub links:
+
+https://raw.githubusercontent.com/Maximus2485/Assignment-5A.-Airline-Delays/refs/heads/main/Arrival%20delays%20Assignment%205.%20.csv
+
+Code Base  
+#Lets upload the raw data in R as csv.file from GitHub.. At first I created the 
+#data in Excel sheet and then downloaded to my computer as csv file. 
+#Then, I uploaded it to gitHub. 
+
+```{r}
+arrival_delays <- read.csv("https://raw.githubusercontent.com/Maximus2485/Assignment-5A.-Airline-Delays/refs/heads/main/Arrival%20delays%20Assignment%205.%20.csv")
+
+head(arrival_delays)
+```
+```{r}
+#Lets add column name to the dataset
+names(arrival_delays) <- c(
+  "Airline",
+  "Status",
+  "Los_Angeles",
+  "Phoenix",
+  "San_Diego",
+  "San_Francisco",
+  "Seatte"
+  )
+
+arrival_delays
+```
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+```
+
+
+
+```{r}
+head(arrival_delays)
+summary(arrival_delays)
+```
+
+
+```{r}
+#change the character variables to numeric.Lets change the character for integer
+# for Phoenix flight column
+arrival_delays_num <- arrival_delays %>%
+  mutate(
+    across(3:7,
+           ~as.numeric(gsub(',',
+"",.))
+  )
+)
+str(arrival_delays_num)
+
+```
+
+```{r}
+# Lets check if the data has N/A
+sum(is.na(arrival_delays))
+```
+
+Lets remove the row with N/A from the dataset.
+
+```{r}
+arrival_delays <- arrival_delays|>
+  dplyr::ungroup()|>
+  dplyr::slice(-3)
+
+print(arrival_delays)
+
+
+```
+Lets fill missing airlines names
+```{r}
+arrival_delays_num <- arrival_delays_num %>%
+  mutate(Airline=na_if(Airline, ""))%>%
+  fill(Airline)
+
+arrival_delays_num
+```
+
+#Lets change wide data to long data using tidyr
+```{r}
+arrival_long <- arrival_delays_num %>%
+  tidyr::pivot_longer(
+    cols=3:7,
+    names_to = "City",
+    values_to = "Flights"
+  )
+arrival_long
+```
+
+Lets calculate overall delay percentage
+```{r}
+overall <- arrival_long %>%
+  group_by(Airline) %>%
+  summarize(
+    Total_Flights= sum(Flights),
+    Delayed_Flights = sum(Flights[Status=="delayed"]),
+    Delay_Percent = Delayed_Flights/Total_Flights * 100
+  )
+overall
+#Thus, ALASKA airline had delayed flights as 501, and total flights 3775.Therefore,
+# its overall delay rate was 13.27%. 
+# In its turn, AM WEST airlines had 7225 flights in total where 787 flights were 
+# delayed. Thus, its overall delay rate was 10.89% approximately. Therefore, 
+#ALASKA while had lower number of delayed flights produced a higher percentage 
+# of delayed flights comparing to AM WEST which had more delayed flights but 
+# fewer delay percent. 
+
+```
+
+Lets calculate delay percentage by city
+```{r}
+by_city <- arrival_long %>%
+  group_by(Airline, City)%>%
+  summarize(Total_Flights= sum(Flights),
+    Delayed_Flights = sum(Flights[Status=="delayed"]),
+    Delay_Percent = Delayed_Flights/Total_Flights * 100
+    )%>%
+  ungroup()
+by_city
+  
+```
+
+Lets create a graph
+```{r}
+ggplot(by_city, mapping=aes(x=City, y=Delay_Percent, fill=Airline)) +
+  geom_col(position="dodge")+
+  labs(title="Flight Delay Percentage by City",
+       x="City",
+       y="Delay Percentage",
+       fill="Airline"
+       )
+#Thus, we can conclude that AM WEST has highest delays in cities such as San
+#Francisco and Seattle comparing to other cities. However, the lowest delays 
+# percentage of AM WEST as well as ALASKA airlines noticed in the Phoenix. Also,
+# AM WEST airlines have highest delay percentage in all 5 cities comparing to the 
+# ALASKA ones. In its turn, ALASKA's highest percentage of delays is in the city
+# of San Francisco. 
+```
+
+Lets create overall comparison graph
+
+```{r}
+ggplot(overall, mapping=aes(x=Airline, y=Delay_Percent, fill=Airline)) +
+  geom_col() +
+  labs(
+    title="Overall Flight Delay Percentage",
+    x= "Airline",
+    y="Delay Percentage"
+  )
+```
+Conclusion
+
+The analysis demonstrated that AM WEST has highest delay percentage in all 5 
+cities. Nevertheless, ALASKA has a higher overall delay percentage when all 
+cities are combined. For instance, ALASKA has 13.27% of delays overall comparing
+to the AM WEST with 10.89%. 
+This assignment analysis and results show that both data about delay percentages
+should be obtained from 2 airlines before making any conclusions; overall 
+percentages and by city delay percentages should be obtained for both companies 
+before making a conclusion about flight delays. 
+
+
+
